@@ -1,7 +1,7 @@
 import boto3
 
 def send_ses_email(to_email, subject, body):
-    ses_client = boto3.client('ses', region_name='eu-west-1')  # Europe region
+    ses_client = boto3.client('ses', region_name='us-east-1')  # Europe region
     
 
     response = ses_client.send_email(
