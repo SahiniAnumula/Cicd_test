@@ -6,3 +6,4 @@ in this repository i would test-
 4. push it to github
 5. deploy the project
 6. check how the deploy is going
+- this branch is the copy of intial main so that deployment of the main branch has a backup.
