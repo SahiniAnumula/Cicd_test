@@ -18,11 +18,10 @@ jobs:
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
-        password: ${{ secrets.EC2_PASSWORD }}
         script: |
           cd /home/ubuntu
           if [ ! -d "myproject" ]; then
-            git clone https://github.com/<YOUR_USERNAME>/<YOUR_REPO>.git myproject
+            git clone https://github.com/SahiniAnumula/Cicd_test.git myproject
           else
             cd myproject && git pull origin main
           fi
