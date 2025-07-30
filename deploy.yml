@@ -1,0 +1,31 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main  # Change to your deployment branch if needed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        password: ${{ secrets.EC2_PASSWORD }}
+        script: |
+          cd /home/ubuntu
+          if [ ! -d "myproject" ]; then
+            git clone https://github.com/<YOUR_USERNAME>/<YOUR_REPO>.git myproject
+          else
+            cd myproject && git pull origin main
+          fi
+          cd myproject
+          pip install -r requirements.txt
+          sudo systemctl restart myapp.service || echo "App restart skipped (not configured yet)"
