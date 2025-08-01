@@ -1,0 +1,44 @@
+name: Django CI/CD Deployment
+
+on:
+  push:
+    branches:
+      - main  # Change if you use a different branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        password: ${{ secrets.EC2_PASSWORD }}
+        script: |
+          set -e
+          cd /home/ubuntu/Cicd_test   # change if your project path is different
+          
+          echo "Pulling latest changes..."
+          git fetch origin main
+          git reset --hard origin/main
+          
+          echo "Activating virtual environment..."
+          source venv/bin/activate
+          
+          echo "Installing dependencies..."
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          
+          echo "Running migrations..."
+          python manage.py migrate --noinput
+          
+          echo "Collecting static files..."
+          python manage.py collectstatic --noinput
+          
+          echo "Restarting Gunicorn..."
+          sudo systemctl restart gunicorn  # change if your service name is different
