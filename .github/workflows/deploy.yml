@@ -1,30 +1,52 @@
-name: CI/CD Pipeline
+name: Django CI/CD to EC2
 
 on:
   push:
     branches:
-      - main  # Change to your deployment branch if needed
+      - main   # Change if your branch is different
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
+    - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Deploy to EC2
+    - name: Deploy to EC2 via SSH
       uses: appleboy/ssh-action@v0.1.10
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
+        password: ${{ secrets.EC2_PASSWORD }}
         script: |
+          set -e
           cd /home/ubuntu
+          
+          # Clone repo if first time
           if [ ! -d "myproject" ]; then
-            git clone https://github.com/SahiniAnumula/Cicd_test.git myproject
-          else
-            cd myproject && git pull origin main
+            git clone https://github.com/<YOUR_USERNAME>/<YOUR_REPO>.git myproject
           fi
+          
+          # Pull latest changes
           cd myproject
+          git fetch origin main
+          git reset --hard origin/main
+          
+          # Activate virtual environment (create if doesn't exist)
+          if [ ! -d "venv" ]; then
+            python3 -m venv venv
+          fi
+          source venv/bin/activate
+          
+          # Install dependencies
+          pip install --upgrade pip
           pip install -r requirements.txt
-          sudo systemctl restart myapp.service || echo "App restart skipped (not configured yet)"
+          
+          # Django migrations & static files
+          python manage.py migrate --noinput
+          python manage.py collectstatic --noinput
+          
+          # Restart Gunicorn/Nginx
+          sudo systemctl restart gunicorn || echo "Gunicorn not configured yet"
+          sudo systemctl restart nginx || echo "Nginx not configured yet"
