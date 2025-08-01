@@ -25,7 +25,7 @@ jobs:
           
           # Clone repo if first time
           if [ ! -d "myproject" ]; then
-            git clone https://github.com/<YOUR_USERNAME>/<YOUR_REPO>.git myproject
+            git clone https://github.com/<SahiniAnumula>/<Cicd_test>.git myproject
           fi
           
           # Pull latest changes
