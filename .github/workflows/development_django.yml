@@ -1,0 +1,41 @@
+name: Django Dev Server CI/CD
+
+on:
+  push:
+    branches:
+      - main  # Adjust if different branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          set -e
+          cd /home/ubuntu/Cicd_test
+          
+          echo "Pulling latest code..."
+          git fetch origin main
+          git reset --hard origin/main
+          
+          echo "Activating virtual environment..."
+          source venv/bin/activate
+          
+          echo "Installing dependencies..."
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          
+          echo "Killing old Django server (if running)..."
+          pkill -f "manage.py runserver" || true
+          
+          echo "Starting Django development server..."
+          nohup python manage.py runserver 0.0.0.0:8000 > server.log 2>&1 &
