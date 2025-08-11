@@ -1,18 +1,18 @@
 from django.shortcuts import render, redirect
 from .forms import RegistrationForm, LoginForm
 from .models import UserProfile
-from utils.email_utils import send_ses_email
+# from utils.email_utils import send_ses_email
 
 def register(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            send_ses_email(
-                user.email,
-                "Welcome to Our Platform!",
-                f"Hi {user.email}, thanks for registering!"
-            )
+            # send_ses_email(
+            #     user.email,
+            #     "Welcome to Our Platform!",
+            #     f"Hi {user.email}, thanks for registering!"
+            # )
             return redirect('login')
     else:
         form = RegistrationForm()
