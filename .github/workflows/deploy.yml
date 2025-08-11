@@ -1,52 +1,94 @@
-name: Django CI/CD to EC2
+name: Deploy Django App to EC2
 
 on:
   push:
-    branches:
-      - main   # Change if your branch is different
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 040604
+          MYSQL_DATABASE: profile1
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        ports:
+          - 3306:3306
+    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run tests
+      env:
+        DATABASE_URL: mysql://django_user:040604@localhost:3306/profile1
+      run: |
+        python manage.py test
 
-    - name: Deploy to EC2 via SSH
-      uses: appleboy/ssh-action@v0.1.10
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.7
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
-        password: ${{ secrets.EC2_PASSWORD }}
+        key: ${{ secrets.EC2_KEY }}
         script: |
-          set -e
-          cd /home/ubuntu
+          # Navigate to app directory
+          cd /var/www/django-app
           
-          # Clone repo if first time
-          if [ ! -d "myproject" ]; then
-            git clone https://github.com/<SahiniAnumula>/<Cicd_test>.git myproject
+          # Pull latest code or clone if first time
+          if [ -d ".git" ]; then
+            git pull origin main
+          else
+            git clone https://github.com/SahiniAnumula/Cicd_test.git .
           fi
           
-          # Pull latest changes
-          cd myproject
-          git fetch origin main
-          git reset --hard origin/main
-          
-          # Activate virtual environment (create if doesn't exist)
+          # Create virtual environment if not exists
           if [ ! -d "venv" ]; then
             python3 -m venv venv
           fi
-          source venv/bin/activate
           
-          # Install dependencies
-          pip install --upgrade pip
+          # Activate virtual environment and install dependencies
+          source venv/bin/activate
           pip install -r requirements.txt
           
-          # Django migrations & static files
-          python manage.py migrate --noinput
-          python manage.py collectstatic --noinput
+          # Create .env file
+          cat > .env << EOF
+          DEBUG=False
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          ALLOWED_HOSTS=${{ secrets.EC2_HOST }},localhost,127.0.0.1
+          EOF
           
-          # Restart Gunicorn/Nginx
-          sudo systemctl restart gunicorn || echo "Gunicorn not configured yet"
-          sudo systemctl restart nginx || echo "Nginx not configured yet"
+          # Run Django commands
+          python manage.py collectstatic --noinput
+          python manage.py migrate
+          
+          # Restart services
+          sudo systemctl restart django-app
+          sudo systemctl restart nginx
