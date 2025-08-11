@@ -3,3 +3,4 @@ gunicorn==21.2.0
 mysqlclient
 python-decouple
 dj_database_url
+os
