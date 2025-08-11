@@ -40,9 +40,9 @@ jobs:
 
     - name: Run tests
       env:
+        SECRET_KEY: django-insecure-6sr8+#o^p76yjd=bdo&!dge(qf-2gmk=+g@4buybft4f+igr=_
         DATABASE_URL: mysql://django_user:040604@localhost:3306/profile1
-      run: |
-        python manage.py test
+      run: python manage.py test
 
   deploy:
     needs: test
